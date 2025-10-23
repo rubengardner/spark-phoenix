@@ -5,6 +5,7 @@ defmodule SparkPhoenix.SparkEvent do
   """
   use Ecto.Schema
   import Ecto.Changeset
+  @derive Jason.Encoder
 
   @typedoc """
   A spark event to be broadcasted to the frontend.
@@ -21,7 +22,7 @@ defmodule SparkPhoenix.SparkEvent do
     field :x, :integer
     field :y, :integer
     field :color, {:array, :float}
-    field :radius, :integer
+    field :radius, :float
     field :transparency, :float
     field :time_to_grow, :integer
   end

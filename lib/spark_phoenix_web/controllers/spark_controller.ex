@@ -5,8 +5,12 @@ defmodule SparkPhoenixWeb.SparkController do
   use SparkPhoenixWeb, :controller
   alias SparkPhoenix.SparkEvent
 
-  @spec create(Plug.Conn.t(), %{"x" => String.t(), "y" => String.t()}) :: Plug.Conn.t()
+  @doc """
+  Receives a spark event, validates parameters, and broadcasts it to clients.
+  """
+  @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, %{"x" => x, "y" => y}) do
+    # Combine path params and body params, and convert keys to atoms for the changeset
     params =
       conn.body_params
       |> Map.merge(%{"x" => x, "y" => y})
@@ -15,6 +19,11 @@ defmodule SparkPhoenixWeb.SparkController do
     case SparkEvent.changeset(params) do
       %Ecto.Changeset{valid?: true} = changeset ->
         spark_event = Ecto.Changeset.apply_changes(changeset)
+
+        # US-03: Broadcast the event asynchronously so the client gets a fast response.
+        Task.start(fn ->
+          SparkPhoenixWeb.Endpoint.broadcast("board:lobby", "sparkle_event", %{data: spark_event})
+        end)
 
         conn
         |> put_status(:accepted)
