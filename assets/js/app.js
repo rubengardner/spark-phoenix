@@ -1,6 +1,10 @@
-// If you want to use Phoenix channels, run `mix help phx.gen.channel`
+import "../css/app.css"
+
+// If you want to use Phoenix channels, run `mix phx.gen.channel`
 // to get started and then uncomment the line below.
 // import "./user_socket.js"
+
+import "./board.js";
 
 // You can include dependencies in two ways.
 //
