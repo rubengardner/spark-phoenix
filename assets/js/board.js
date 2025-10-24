@@ -3,13 +3,22 @@ import { Socket } from "phoenix";
 let canvas = document.getElementById("board-canvas");
 let ctx = canvas.getContext("2d");
 
-const boardSize = 512;
+const originalWidth = 512;
+const originalHeight = 512;
 
 // A list of active sparks to animate
 let activeSparks = [];
 
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
 function initialize() {
   console.log("Canvas initialized.");
+
+  window.addEventListener('resize', resizeCanvas, false);
+  resizeCanvas();
 
   // Connect to the socket
   let socket = new Socket("/socket", { params: {} });
@@ -23,21 +32,29 @@ function initialize() {
 
   // Listen for spark events
   channel.on("sparkle_event", payload => {
-    drawSpark(payload);
+    handleSparkEvent(payload);
   });
 }
 
-function drawSpark(payload) {
+function handleSparkEvent(payload) {
     const { x, y, color, radius, transparency, time_to_grow } = payload.data;
     const [h, s, l] = color;
+
+    // Scale the coordinates from the 512x512 system to the current viewport size
+    const scaledX = (x / originalWidth) * canvas.width;
+    const scaledY = (y / originalHeight) * canvas.height;
+
+    // Scale the radius to be proportional to the viewport size
+    const scaleFactor = (canvas.width / originalWidth + canvas.height / originalHeight) / 2;
+    const scaledRadius = radius * scaleFactor;
 
     const startTime = performance.now();
 
     activeSparks.push({
-        x,
-        y,
+        x: scaledX,
+        y: scaledY,
         color: `hsl(${h}, ${s}%, ${l}%)`,
-        maxRadius: radius,
+        maxRadius: scaledRadius,
         duration: time_to_grow,
         startTime,
         initialOpacity: transparency
@@ -50,15 +67,13 @@ function drawSpark(payload) {
 }
 
 function animateSparks(currentTime) {
-    // Clear only the part of the canvas that needs updating if we want to optimize,
-    // but clearing the whole canvas is simpler and often fast enough.
-    ctx.clearRect(0, 0, boardSize, boardSize);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     let stillActive = [];
 
     for (const spark of activeSparks) {
         const elapsedTime = currentTime - spark.startTime;
-        const progress = Math.min(elapsedTime / spark.duration, 1.0);
+        const progress = Math.max(0, Math.min(elapsedTime / spark.duration, 1.0));
 
         if (progress < 1.0) {
             const currentRadius = spark.maxRadius * progress; // Linear growth
@@ -68,8 +83,7 @@ function animateSparks(currentTime) {
             ctx.globalAlpha = currentOpacity;
 
             ctx.beginPath();
-            // Canvas draws pixels centered, so +0.5 aligns with the pixel grid
-            ctx.arc(spark.x + 0.5, spark.y + 0.5, currentRadius, 0, 2 * Math.PI);
+            ctx.arc(spark.x, spark.y, currentRadius, 0, 2 * Math.PI);
             ctx.fill();
 
             stillActive.push(spark);
