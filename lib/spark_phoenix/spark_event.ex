@@ -17,6 +17,15 @@ defmodule SparkPhoenix.SparkEvent do
   - `transparency`: The spark's initial transparency (number 0.0-1.0).
   - `time_to_grow`: The animation duration in milliseconds (integer > 0).
   """
+  @type t :: %__MODULE__{
+          x: integer(),
+          y: integer(),
+          color: list(float()),
+          radius: float(),
+          transparency: float(),
+          time_to_grow: integer()
+        }
+
   @primary_key false
   embedded_schema do
     field :x, :integer
